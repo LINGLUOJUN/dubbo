@@ -47,7 +47,7 @@ public class ProtocolListenerWrapper implements Protocol {
     }
 
     public <T> Exporter<T> export(Invoker<T> invoker) throws RpcException {
-        // 注册中心协议
+        // 注册中心协议 TODO ys 这里的注册中心协议register不懂
         if (Constants.REGISTRY_PROTOCOL.equals(invoker.getUrl().getProtocol())) {
             return protocol.export(invoker);
         }
