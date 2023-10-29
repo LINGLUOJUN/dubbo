@@ -45,6 +45,8 @@ import org.apache.dubbo.rpc.model.ApplicationModel;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 import static org.apache.dubbo.metrics.DefaultConstants.INIT_DEFAULT_METHOD_KEYS;
 import static org.apache.dubbo.metrics.model.MetricsCategory.APPLICATION;
@@ -168,14 +170,14 @@ public class DefaultMetricsCollector extends CombMetricsCollector<RequestEvent> 
 
     @Override
     public void onEvent(TimeCounterEvent event) {
-        if(event instanceof MetricsInitEvent){
+        if (event instanceof MetricsInitEvent) {
             if (!metricsInitEnabled) {
                 return;
             }
-            if(initialized.compareAndSet(false,true)) {
+            if (initialized.compareAndSet(false, true)) {
                 collectors.addAll(applicationModel.getBeanFactory().getBeansOfType(MetricsCollector.class));
             }
-            collectors.stream().forEach(collector->collector.initMetrics(event));
+            collectors.forEach(collector -> collector.initMetrics(event));
             return;
         }
         super.onEvent(event);
@@ -184,21 +186,20 @@ public class DefaultMetricsCollector extends CombMetricsCollector<RequestEvent> 
     @Override
     public void initMetrics(MetricsEvent event) {
         MetricsPlaceValue dynamicPlaceType = MetricsPlaceValue.of(event.getAttachmentValue(MetricsConstants.INVOCATION_SIDE), MetricsLevel.METHOD);
-        INIT_DEFAULT_METHOD_KEYS.stream().forEach(key->MetricsSupport.init(key, dynamicPlaceType, (MethodMetricsCollector) this, event));
+        INIT_DEFAULT_METHOD_KEYS.forEach(key -> MetricsSupport.init(key, dynamicPlaceType, (MethodMetricsCollector) this, event));
         MetricsSupport.init(METRIC_REQUESTS_SERVICE_UNAVAILABLE_FAILED, MetricsPlaceValue.of(CommonConstants.CONSUMER, MetricsLevel.METHOD), (MethodMetricsCollector) this, event);
     }
 
     public SimpleMetricsCountSampler<String, MetricsEvent.Type, ApplicationMetric> applicationSampler = new SimpleMetricsCountSampler<String, MetricsEvent.Type, ApplicationMetric>() {
         @Override
         public List<MetricSample> sample() {
-            List<MetricSample> samples = new ArrayList<>();
-            this.getCount(MetricsEvent.Type.APPLICATION_INFO).filter(e -> !e.isEmpty())
-                .ifPresent(map -> map.forEach((k, v) ->
-                    samples.add(new CounterMetricSample<>(APPLICATION_METRIC_INFO.getName(),
-                        APPLICATION_METRIC_INFO.getDescription(),
-                        k.getTags(), APPLICATION, v)))
-                );
-            return samples;
+            return this.getCount(MetricsEvent.Type.APPLICATION_INFO)
+                .entrySet()
+                .stream()
+                .map(ele -> new CounterMetricSample<>(APPLICATION_METRIC_INFO.getName(),
+                    APPLICATION_METRIC_INFO.getDescription(),
+                    ele.getKey().getTags(), APPLICATION, ele.getValue()))
+                .collect(Collectors.toList());
         }
 
         @Override

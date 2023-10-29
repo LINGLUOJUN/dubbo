@@ -17,21 +17,22 @@
 
 package org.apache.dubbo.metrics.collector.sample;
 
+import org.apache.dubbo.common.utils.CollectionUtils;
 import org.apache.dubbo.common.utils.ConcurrentHashSet;
 import org.apache.dubbo.metrics.collector.DefaultMetricsCollector;
-import org.apache.dubbo.metrics.model.Metric;
 import org.apache.dubbo.metrics.model.MetricsCategory;
 import org.apache.dubbo.metrics.model.ThreadPoolRejectMetric;
 import org.apache.dubbo.metrics.model.key.MetricsKey;
 import org.apache.dubbo.metrics.model.sample.GaugeMetricSample;
 import org.apache.dubbo.metrics.model.sample.MetricSample;
 
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.ToDoubleFunction;
+import java.util.stream.Collectors;
 
 import static org.apache.dubbo.metrics.model.MetricsCategory.THREAD_POOL;
 
@@ -55,20 +56,15 @@ public class ThreadRejectMetricsCountSampler extends SimpleMetricsCountSampler<S
 
     @Override
     public List<MetricSample> sample() {
-        List<MetricSample> metricSamples = new ArrayList<>();
-        metricNames.stream().forEach(name->collect(metricSamples,name));
-        return metricSamples;
-    }
-
-
-    private void collect(List<MetricSample> list, String metricName) {
-        count(list, metricName, MetricsKey.THREAD_POOL_THREAD_REJECT_COUNT);
-    }
-
-    private <T extends Metric> void count(List<MetricSample> list, String metricName, MetricsKey metricsKey) {
-        getCount(metricName).filter(e -> !e.isEmpty())
-            .ifPresent(map -> map.forEach((k, v) ->
-                list.add(getGaugeMetricSample(metricsKey, k, THREAD_POOL, v, AtomicLong::get))));
+        return metricNames
+            .stream()
+            .map(metricName -> getCount(metricName)
+                .entrySet()
+                .stream()
+                .map(ele -> getGaugeMetricSample(MetricsKey.THREAD_POOL_THREAD_REJECT_COUNT, ele.getKey(), THREAD_POOL, ele.getValue(), AtomicLong::get))
+                .collect(Collectors.toList()))
+            .filter(CollectionUtils::isNotEmpty)
+            .flatMap(Collection::stream).collect(Collectors.toList());
     }
 
     private <T> GaugeMetricSample<T> getGaugeMetricSample(MetricsKey metricsKey,

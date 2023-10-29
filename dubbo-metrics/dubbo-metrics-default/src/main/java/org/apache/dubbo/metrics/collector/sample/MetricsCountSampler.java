@@ -19,7 +19,6 @@ package org.apache.dubbo.metrics.collector.sample;
 
 import org.apache.dubbo.metrics.model.Metric;
 
-import java.util.Optional;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -27,6 +26,6 @@ public interface MetricsCountSampler<S, K, M extends Metric> extends MetricsSamp
 
     void inc(S source, K metricName);
 
-    Optional<ConcurrentMap<M, AtomicLong>> getCount(K metricName);
+    ConcurrentMap<M, AtomicLong> getCount(K metricName);
 
 }

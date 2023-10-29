@@ -44,10 +44,8 @@ public abstract class SimpleMetricsCountSampler<S, K, M extends Metric>
     }
 
     @Override
-    public Optional<ConcurrentMap<M, AtomicLong>> getCount(K metricName) {
-        return Optional.ofNullable(metricCounter.get(metricName) == null ?
-            EMPTY_COUNT :
-            metricCounter.get(metricName));
+    public ConcurrentMap<M, AtomicLong> getCount(K metricName) {
+        return metricCounter.getOrDefault(metricName, EMPTY_COUNT);
     }
 
     protected  void initMetricsCounter(S source, K metricsName){
@@ -63,19 +61,12 @@ public abstract class SimpleMetricsCountSampler<S, K, M extends Metric>
 
         this.countConfigure(sampleConfigure);
 
-        Map<M, AtomicLong> metricAtomic = metricCounter.get(metricsName);
-
-        if (metricAtomic == null) {
-            metricAtomic = metricCounter.computeIfAbsent(metricsName, k -> new ConcurrentHashMap<>());
-        }
-
         Assert.notNull(sampleConfigure.getMetric(), "metrics is null");
 
-        AtomicLong atomicCounter = metricAtomic.get(sampleConfigure.getMetric());
+        Map<M, AtomicLong>  metricAtomic = metricCounter.computeIfAbsent(metricsName, k -> new ConcurrentHashMap<>());
 
-        if (atomicCounter == null) {
-            atomicCounter = metricAtomic.computeIfAbsent(sampleConfigure.getMetric(), k -> new AtomicLong());
-        }
+        AtomicLong atomicCounter = metricAtomic.computeIfAbsent(sampleConfigure.getMetric(), k -> new AtomicLong());;
+
         return atomicCounter;
 
     }
