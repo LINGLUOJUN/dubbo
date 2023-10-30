@@ -48,9 +48,9 @@ public class ThreadRejectMetricsCountSampler extends SimpleMetricsCountSampler<S
         this.collector.addSampler(this);
     }
 
-    public void addMetricName(String name){
+    public void addMetricName(String name) {
         this.metricNames.add(name);
-        this.initMetricsCounter(name,name);
+        this.initMetricsCounter(name, name);
         samplesChanged.set(true);
     }
 
@@ -83,7 +83,7 @@ public class ThreadRejectMetricsCountSampler extends SimpleMetricsCountSampler<S
 
     @Override
     protected void countConfigure(MetricsCountSampleConfigurer<String, String, ThreadPoolRejectMetric> sampleConfigure) {
-        sampleConfigure.configureMetrics(configure -> new ThreadPoolRejectMetric(collector.getApplicationName(),configure.getSource()));
+        sampleConfigure.configureMetrics(configure -> new ThreadPoolRejectMetric(collector.getApplicationName(), configure.getSource()));
     }
 
     @Override

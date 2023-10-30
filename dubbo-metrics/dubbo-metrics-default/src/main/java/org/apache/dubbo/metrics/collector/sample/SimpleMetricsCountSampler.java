@@ -21,7 +21,6 @@ import org.apache.dubbo.common.utils.Assert;
 import org.apache.dubbo.metrics.model.Metric;
 
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -45,11 +44,11 @@ public abstract class SimpleMetricsCountSampler<S, K, M extends Metric>
 
     @Override
     public ConcurrentMap<M, AtomicLong> getCount(K metricName) {
-        return metricCounter.getOrDefault(metricName, EMPTY_COUNT);
+        return metricCounter.computeIfAbsent(metricName, (key) -> EMPTY_COUNT);
     }
 
-    protected  void initMetricsCounter(S source, K metricsName){
-        getAtomicCounter(source,metricsName);
+    protected void initMetricsCounter(S source, K metricsName) {
+        getAtomicCounter(source, metricsName);
     }
 
     protected abstract void countConfigure(MetricsCountSampleConfigurer<S, K, M> sampleConfigure);
@@ -63,11 +62,9 @@ public abstract class SimpleMetricsCountSampler<S, K, M extends Metric>
 
         Assert.notNull(sampleConfigure.getMetric(), "metrics is null");
 
-        Map<M, AtomicLong>  metricAtomic = metricCounter.computeIfAbsent(metricsName, k -> new ConcurrentHashMap<>());
+        Map<M, AtomicLong> metricAtomic = metricCounter.computeIfAbsent(metricsName, k -> new ConcurrentHashMap<>());
 
-        AtomicLong atomicCounter = metricAtomic.computeIfAbsent(sampleConfigure.getMetric(), k -> new AtomicLong());;
-
-        return atomicCounter;
+        return metricAtomic.computeIfAbsent(sampleConfigure.getMetric(), k -> new AtomicLong());
 
     }
 
