@@ -17,6 +17,7 @@
 
 package org.apache.dubbo.metrics.service;
 
+import org.apache.dubbo.common.utils.CollectionUtils;
 import org.apache.dubbo.metrics.collector.MetricsCollector;
 import org.apache.dubbo.metrics.model.MetricsCategory;
 import org.apache.dubbo.metrics.model.sample.GaugeMetricSample;
@@ -24,9 +25,10 @@ import org.apache.dubbo.metrics.model.sample.MetricSample;
 import org.apache.dubbo.rpc.model.ApplicationModel;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Default implementation of {@link MetricsService}
@@ -52,18 +54,13 @@ public class DefaultMetricsService implements MetricsService {
 
     @Override
     public Map<MetricsCategory, List<MetricsEntity>> getMetricsByCategories(String serviceUniqueName, String methodName, Class<?>[] parameterTypes, List<MetricsCategory> categories) {
-        Map<MetricsCategory, List<MetricsEntity>> result = new HashMap<>();
-        for (MetricsCollector<?> collector : collectors) {
-            List<MetricSample> samples = collector.collect();
-            for (MetricSample sample : samples) {
-                if (categories.contains(sample.getCategory())) {
-                    List<MetricsEntity> entities = result.computeIfAbsent(sample.getCategory(), k -> new ArrayList<>());
-                    entities.add(sampleToEntity(sample));
-                }
-            }
-        }
-
-        return result;
+        return collectors.stream()
+            .map(ele -> ((MetricsCollector<?>) ele).collect())
+            .filter(CollectionUtils::isNotEmpty)
+            .flatMap(Collection::stream)
+            .filter(ele -> categories.contains(ele.getCategory()))
+            .collect(Collectors.groupingBy(MetricSample::getCategory,
+                Collectors.mapping(this::sampleToEntity, Collectors.toList())));
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})

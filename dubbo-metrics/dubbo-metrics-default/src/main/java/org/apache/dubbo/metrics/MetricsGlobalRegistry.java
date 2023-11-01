@@ -17,12 +17,11 @@
 
 package org.apache.dubbo.metrics;
 
-import io.micrometer.core.instrument.Metrics;
-import io.micrometer.core.instrument.composite.CompositeMeterRegistry;
 import org.apache.dubbo.config.MetricsConfig;
 import org.apache.dubbo.rpc.model.ApplicationModel;
 
-import java.util.Optional;
+import io.micrometer.core.instrument.Metrics;
+import io.micrometer.core.instrument.composite.CompositeMeterRegistry;
 
 /**
  * Get the micrometer meter registry, can choose spring, micrometer, dubbo
@@ -38,12 +37,10 @@ public class MetricsGlobalRegistry {
      * 3. Dubbo's own CompositeMeterRegistry is used by default
      */
     public static CompositeMeterRegistry getCompositeRegistry(ApplicationModel applicationModel) {
-        Optional<MetricsConfig> configOptional = applicationModel.getApplicationConfigManager().getMetrics();
-        if (configOptional.isPresent() && configOptional.get().getUseGlobalRegistry() != null && configOptional.get().getUseGlobalRegistry()) {
-            return Metrics.globalRegistry;
-        } else {
-            return compositeRegistry;
-        }
+        return applicationModel.getApplicationConfigManager().getMetrics()
+            .filter(MetricsConfig::getUseGlobalRegistry)
+            .map(ele -> Metrics.globalRegistry)
+            .orElseGet(() -> compositeRegistry);
     }
 
     public static CompositeMeterRegistry getCompositeRegistry() {
