@@ -301,7 +301,7 @@ public class AggregateMetricsCollector implements MetricsCollector<RequestEvent>
     }
 
     public void initMethodMetric(MetricsEvent event) {
-        INIT_AGG_METHOD_KEYS.stream().forEach(key -> initWindowCounter(event, key));
+        INIT_AGG_METHOD_KEYS.forEach(key -> initWindowCounter(event, key));
     }
 
     public void initQpsMetric(MethodMetric metric) {

@@ -17,20 +17,22 @@
 
 package org.apache.dubbo.metrics.report;
 
+import org.apache.dubbo.common.URL;
+import org.apache.dubbo.common.utils.CollectionUtils;
+import org.apache.dubbo.rpc.model.ApplicationModel;
+
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Timer;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 
-import org.apache.dubbo.common.URL;
-import org.apache.dubbo.rpc.model.ApplicationModel;
-
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public class DefaultMetricsReporter extends AbstractMetricsReporter {
 
@@ -40,6 +42,7 @@ public class DefaultMetricsReporter extends AbstractMetricsReporter {
         super(url, applicationModel);
     }
 
+
     @Override
     public String getResponse() {
         return null;
@@ -47,18 +50,18 @@ public class DefaultMetricsReporter extends AbstractMetricsReporter {
 
     @Override
     public String getResponseWithName(String metricsName) {
-        Map<String, List<Tag>> metricsTags = new HashMap<>();
-        Map<String, Object> metricsValue = new HashMap<>();
+
         StringBuilder sb = new StringBuilder();
-        meterRegistry.getMeters().stream().filter(meter -> {
-            if (meter == null || meter.getId() == null || meter.getId().getName() == null) {
-                return false;
-            }
-            if (metricsName != null) {
-                return meter.getId().getName().contains(metricsName);
-            }
-            return true;
-        }).forEach(meter -> {
+        //filter meters
+        List<Meter> filteredMeters = filterMeters(meterRegistry, metricsName);
+
+        Map<String, List<Tag>> metricsTags = filteredMeters
+            .stream()
+            .collect(Collectors.toMap(ele -> ele.getId().getName(),
+                ele -> ele.getId().getTags(),
+                (a, b) -> b));
+
+        filteredMeters.forEach(meter -> {
             Object value = null;
             if (meter instanceof Counter) {
                 Counter counter = (Counter) meter;
@@ -72,18 +75,13 @@ public class DefaultMetricsReporter extends AbstractMetricsReporter {
                 Timer timer = (Timer) meter;
                 value = timer.totalTime(TimeUnit.MILLISECONDS);
             }
-            metricsTags.put(meter.getId().getName(), meter.getId().getTags());
-            metricsValue.put(meter.getId().getName(), value);
-        });
-        metricsValue.forEach((key, value) -> {
+
+            String key = meter.getId().getName();
             sb.append(key).append("{");
             List<Tag> tags = metricsTags.get(key);
-            if (tags != null && tags.size() > 0) {
-                tags.forEach(tag -> {
-                    sb.append(tag.getKey()).append("=").append(tag.getValue()).append(",");
-                });
-            }
+            getTagsString(tags, sb);
             sb.append("} ").append(value).append(System.lineSeparator());
+
         });
         return sb.toString();
     }
@@ -96,5 +94,35 @@ public class DefaultMetricsReporter extends AbstractMetricsReporter {
     @Override
     protected void doDestroy() {
 
+    }
+
+    public List<Meter> filterMeters(SimpleMeterRegistry meterRegistry, String metricsName) {
+        return meterRegistry.getMeters()
+            .stream()
+            .filter(meter -> {
+                Optional<String> convertMetricNameOpt = Optional.ofNullable(meter)
+                    .map(Meter::getId)
+                    .map(Meter.Id::getName);
+                if (!convertMetricNameOpt.isPresent()) {
+                    return false;
+                }
+                if (metricsName != null) {
+                    return meter.getId().getName().contains(metricsName);
+                }
+                return true;
+            }).collect(Collectors.toList());
+
+    }
+
+    private void getTagsString(List<Tag> tags, StringBuilder sb) {
+        if (CollectionUtils.isEmpty(tags)) {
+            return;
+        }
+        tags.forEach(tag -> {
+            sb.append(tag.getKey())
+                .append("=")
+                .append(tag.getValue())
+                .append(",");
+        });
     }
 }

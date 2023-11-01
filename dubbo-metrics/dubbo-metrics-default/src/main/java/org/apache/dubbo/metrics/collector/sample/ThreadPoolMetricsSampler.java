@@ -30,14 +30,15 @@ import org.apache.dubbo.metrics.model.sample.MetricSample;
 import org.apache.dubbo.rpc.model.ApplicationModel;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 import static org.apache.dubbo.common.constants.CommonConstants.CONSUMER_SHARED_EXECUTOR_SERVICE_COMPONENT_KEY;
 import static org.apache.dubbo.common.constants.CommonConstants.EXECUTOR_SERVICE_COMPONENT_KEY;
@@ -51,18 +52,18 @@ public class ThreadPoolMetricsSampler implements MetricsSampler {
     private final ErrorTypeAwareLogger logger = LoggerFactory.getErrorTypeAwareLogger(ThreadPoolMetricsSampler.class);
 
     private final DefaultMetricsCollector collector;
-    private FrameworkExecutorRepository frameworkExecutorRepository;
-    private DataStore dataStore;
     private final Map<String, ThreadPoolExecutor> sampleThreadPoolExecutor = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, ThreadPoolMetric> threadPoolMetricMap = new ConcurrentHashMap<>();
     private final AtomicBoolean samplesChanged = new AtomicBoolean(true);
+    private FrameworkExecutorRepository frameworkExecutorRepository;
+    private DataStore dataStore;
 
     public ThreadPoolMetricsSampler(DefaultMetricsCollector collector) {
         this.collector = collector;
     }
 
     public void addExecutors(String name, ExecutorService executorService) {
-        Optional.ofNullable(executorService).filter(Objects::nonNull).filter(e -> e instanceof ThreadPoolExecutor)
+        Optional.ofNullable(executorService).filter(e -> e instanceof ThreadPoolExecutor)
             .map(e -> (ThreadPoolExecutor) e)
             .ifPresent(threadPoolExecutor -> {
                 sampleThreadPoolExecutor.put(name, threadPoolExecutor);
@@ -72,13 +73,12 @@ public class ThreadPoolMetricsSampler implements MetricsSampler {
 
     @Override
     public List<MetricSample> sample() {
-        List<MetricSample> metricSamples = new ArrayList<>();
+        return sampleThreadPoolExecutor.entrySet()
+            .stream()
+            .map(ele -> createMetricsSample(ele.getKey(), ele.getValue()))
+            .flatMap(Collection::stream)
+            .collect(Collectors.toList());
 
-        sampleThreadPoolExecutor.forEach((name, executor) -> {
-            metricSamples.addAll(createMetricsSample(name, executor));
-        });
-
-        return metricSamples;
     }
 
     private List<MetricSample> createMetricsSample(String name, ThreadPoolExecutor executor) {
