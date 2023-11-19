@@ -60,7 +60,8 @@ public class ThreadRejectMetricsCountSampler extends SimpleMetricsCountSampler<S
             .stream()
             .map(this::convertThreadRejectMetric2GaugeMetricSample)
             .filter(CollectionUtils::isNotEmpty)
-            .flatMap(Collection::stream).collect(Collectors.toList());
+            .flatMap(Collection::stream)
+            .collect(Collectors.toList());
     }
 
 
