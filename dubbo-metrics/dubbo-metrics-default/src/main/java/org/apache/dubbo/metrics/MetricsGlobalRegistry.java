@@ -17,11 +17,12 @@
 
 package org.apache.dubbo.metrics;
 
-import org.apache.dubbo.config.MetricsConfig;
 import org.apache.dubbo.rpc.model.ApplicationModel;
 
 import io.micrometer.core.instrument.Metrics;
 import io.micrometer.core.instrument.composite.CompositeMeterRegistry;
+
+import java.util.Objects;
 
 /**
  * Get the micrometer meter registry, can choose spring, micrometer, dubbo
@@ -38,7 +39,7 @@ public class MetricsGlobalRegistry {
      */
     public static CompositeMeterRegistry getCompositeRegistry(ApplicationModel applicationModel) {
         return applicationModel.getApplicationConfigManager().getMetrics()
-            .filter(MetricsConfig::getUseGlobalRegistry)
+            .filter(ele -> Objects.nonNull(ele.getUseGlobalRegistry()) && ele.getUseGlobalRegistry())
             .map(ele -> Metrics.globalRegistry)
             .orElseGet(() -> compositeRegistry);
     }

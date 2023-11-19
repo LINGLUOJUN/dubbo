@@ -30,7 +30,6 @@ import org.apache.dubbo.metrics.model.sample.MetricSample;
 import org.apache.dubbo.rpc.model.ApplicationModel;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -75,8 +74,7 @@ public class ThreadPoolMetricsSampler implements MetricsSampler {
     public List<MetricSample> sample() {
         return sampleThreadPoolExecutor.entrySet()
             .stream()
-            .map(ele -> createMetricsSample(ele.getKey(), ele.getValue()))
-            .flatMap(Collection::stream)
+            .flatMap(ele -> createMetricsSample(ele.getKey(), ele.getValue()).stream())
             .collect(Collectors.toList());
 
     }

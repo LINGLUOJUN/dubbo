@@ -58,13 +58,18 @@ public class ThreadRejectMetricsCountSampler extends SimpleMetricsCountSampler<S
     public List<MetricSample> sample() {
         return metricNames
             .stream()
-            .map(metricName -> getCount(metricName)
-                .entrySet()
-                .stream()
-                .map(ele -> getGaugeMetricSample(MetricsKey.THREAD_POOL_THREAD_REJECT_COUNT, ele.getKey(), THREAD_POOL, ele.getValue(), AtomicLong::get))
-                .collect(Collectors.toList()))
+            .map(this::convertThreadRejectMetric2GaugeMetricSample)
             .filter(CollectionUtils::isNotEmpty)
             .flatMap(Collection::stream).collect(Collectors.toList());
+    }
+
+
+    private List<MetricSample> convertThreadRejectMetric2GaugeMetricSample(String metricName) {
+        return getCount(metricName).entrySet()
+            .stream()
+            .map(ele -> getGaugeMetricSample(MetricsKey.THREAD_POOL_THREAD_REJECT_COUNT, ele.getKey(), THREAD_POOL, ele.getValue(), AtomicLong::get))
+            .collect(Collectors.toList());
+
     }
 
     private <T> GaugeMetricSample<T> getGaugeMetricSample(MetricsKey metricsKey,
@@ -80,6 +85,10 @@ public class ThreadRejectMetricsCountSampler extends SimpleMetricsCountSampler<S
             value,
             apply);
     }
+
+
+
+
 
     @Override
     protected void countConfigure(MetricsCountSampleConfigurer<String, String, ThreadPoolRejectMetric> sampleConfigure) {

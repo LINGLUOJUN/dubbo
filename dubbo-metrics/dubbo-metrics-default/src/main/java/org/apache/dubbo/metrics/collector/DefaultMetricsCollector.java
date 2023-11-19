@@ -45,7 +45,6 @@ import org.apache.dubbo.rpc.model.ApplicationModel;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import static org.apache.dubbo.metrics.DefaultConstants.INIT_DEFAULT_METHOD_KEYS;
